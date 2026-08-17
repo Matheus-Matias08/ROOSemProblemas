@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.rooSemProblemas.DTO.LoginDTO;
 import com.example.rooSemProblemas.DTO.UsuarioDTO;
 import com.example.rooSemProblemas.models.Endereco;
 import com.example.rooSemProblemas.models.Usuario;
@@ -51,4 +52,16 @@ public class UsuarioService {
         usuario = repositoryUsuario.save(usuario);
         return new UsuarioDTO(usuario);
     }
+    public UsuarioDTO login(LoginDTO loginDTO) {
+    // Busca usuário pelo e-mail
+    Usuario usuario = repositoryUsuario.findByEmail(loginDTO.getEmail())
+            .orElseThrow(() -> new RuntimeException("E-mail ou senha incorretos!"));
+
+    // Verifica a senha (se estiver usando senhas simples/texto puro)
+    if (!usuario.getSenha_hash().equals(loginDTO.getSenha())) {
+        throw new RuntimeException("E-mail ou senha incorretos!");
+    }
+
+    return new UsuarioDTO(usuario);
+}
 }

@@ -50,4 +50,5 @@ public class UsuarioDTO implements Serializable {
             this.perfilId = entity.getPerfil().getId();
         }
     }
+    
 }

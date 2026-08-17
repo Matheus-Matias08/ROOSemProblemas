@@ -6,7 +6,7 @@ import axios from 'axios';
 // - Se o servidor Spring Boot rodar em outra porta (ex: 8080 ou 3000), ajuste a porta abaixo.
 
 export const api = axios.create({
-  baseURL: 'http://172.16.236.10:8080', // Substitua pelo seu IP local e porta do Spring Boot
+  baseURL: 'http://10.0.0.151:8080', // Substitua pelo seu IP local e porta do Spring Boot
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

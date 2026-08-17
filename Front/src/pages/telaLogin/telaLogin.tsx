@@ -12,47 +12,47 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { api } from '../../service/api';
 
 export default function TelaLogin({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Validação simples para habilitar o botão de entrar
   const isFormValid = email.includes('@') && email.includes('.') && senha.length > 0;
 
   const handleLogin = async () => {
-    if (isFormValid) {
-      try {
-        const response = await fetch('http://172.16.236.10:8080/usuarios/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: email,
-            senha: senha,
-          }),
-        });
+    if (!isFormValid || loading) return;
 
-        console.log('Status code retornado:', response.status);
-        const respostaTexto = await response.text();
-        console.log('Corpo da resposta do servidor:', respostaTexto);
+    setLoading(true);
 
-        if (response.ok) {
-          const usuarioLogado = JSON.parse(respostaTexto);
-          console.log('Login realizado com sucesso:', usuarioLogado);
-          
-          // Vai direto para a Home sem barreiras
-          navigation.replace('Home');
-        } else {
-          alert(`Erro ${response.status}: ${respostaTexto || 'E-mail ou senha incorretos!'}`);
-        }
-      } catch (error) {
-        console.error('Erro de rede ou ao conectar com o servidor:', error);
-        alert('Não foi possível conectar ao servidor. Verifique o console.');
-      }
+    try {
+      // Utiliza a instância centralizada do Axios
+      const response = await api.post('/usuarios/login', {
+        email: email.trim(),
+        senha: senha,
+      });
+
+      console.log('Login realizado com sucesso:', response.data);
+
+      // Redireciona para a tela principal da aplicação
+      navigation.replace('Home');
+    } catch (error: any) {
+      console.error('Erro ao realizar login:', error?.response?.data || error.message);
+
+      const errorMessage =
+        typeof error?.response?.data === 'string'
+          ? error.response.data
+          : error?.response?.data?.message || 'E-mail ou senha incorretos!';
+
+      Alert.alert('Erro no Login', errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,7 +66,7 @@ export default function TelaLogin({ navigation }: any) {
 
   return (
     <ImageBackground
-      source={require('../../../assets/images.jpg')} 
+      source={require('../../../assets/images.jpg')}
       style={styles.backgroundImage}
       resizeMode="cover"
     >
@@ -121,14 +121,13 @@ export default function TelaLogin({ navigation }: any) {
                   <TouchableOpacity 
                     style={styles.eyeButton} 
                     onPress={() => setMostrarSenha(!mostrarSenha)}
-                    >
-                    {/* 2. Substitui o emoji pelo componente de ícone */}
+                  >
                     <Ionicons 
-                        name={mostrarSenha ? 'eye' : 'eye-off'} 
-                        size={20} 
-                        color="#8E8E93" 
+                      name={mostrarSenha ? 'eye' : 'eye-off'} 
+                      size={20} 
+                      color="#8E8E93" 
                     />
-                    </TouchableOpacity>
+                  </TouchableOpacity>
                 </View>
 
                 <TouchableOpacity
@@ -138,15 +137,19 @@ export default function TelaLogin({ navigation }: any) {
                   <Text style={styles.forgotPasswordText}>Esqueci minha senha</Text>
                 </TouchableOpacity>
 
-                {/* Botão Entrar que vai para a HomeScreen */}
+                {/* Botão Entrar */}
                 <TouchableOpacity
                   style={[styles.button, isFormValid && styles.buttonActive]}
-                  disabled={!isFormValid}
+                  disabled={!isFormValid || loading}
                   onPress={handleLogin}
                 >
-                  <Text style={[styles.buttonText, isFormValid && styles.buttonTextActive]}>
-                    ENTRAR
-                  </Text>
+                  {loading ? (
+                    <ActivityIndicator color="#000000" />
+                  ) : (
+                    <Text style={[styles.buttonText, isFormValid && styles.buttonTextActive]}>
+                      ENTRAR
+                    </Text>
+                  )}
                 </TouchableOpacity>
 
                 {/* Link para o Registro */}
@@ -269,9 +272,6 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     padding: 4,
-  },
-  eyeIcon: {
-    fontSize: 18,
   },
   forgotPasswordLink: {
     alignItems: 'flex-end',

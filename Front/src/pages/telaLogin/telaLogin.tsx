@@ -15,6 +15,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../../service/api';
 
 export default function TelaLogin({ navigation }: any) {
@@ -23,7 +24,6 @@ export default function TelaLogin({ navigation }: any) {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Validação simples para habilitar o botão de entrar
   const isFormValid = email.includes('@') && email.includes('.') && senha.length > 0;
 
   const handleLogin = async () => {
@@ -32,16 +32,20 @@ export default function TelaLogin({ navigation }: any) {
     setLoading(true);
 
     try {
-      // Utiliza a instância centralizada do Axios
       const response = await api.post('/usuarios/login', {
         email: email.trim(),
         senha: senha,
       });
 
-      console.log('Login realizado com sucesso:', response.data);
+      // Extrai o ID independente da propriedade que o Spring Boot enviar
+      const userId = response.data?.id || response.data?.usuarioId;
 
-      // Redireciona para a tela principal da aplicação
-      navigation.replace('Home');
+      if (userId && userId !== 'undefined') {
+        await AsyncStorage.setItem('@usuario_id', String(userId));
+        navigation.replace('Home');
+      } else {
+        Alert.alert('Erro', 'Não foi possível carregar os dados do usuário.');
+      }
     } catch (error: any) {
       console.error('Erro ao realizar login:', error?.response?.data || error.message);
 
@@ -76,10 +80,7 @@ export default function TelaLogin({ navigation }: any) {
           style={styles.keyboardView}
         >
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            
-            {/* Card Principal Escuro */}
             <View style={styles.card}>
-              
               <View style={styles.logoContainer}>
                 <Image 
                   source={require('../../../assets/logo.png')} 
@@ -95,7 +96,6 @@ export default function TelaLogin({ navigation }: any) {
 
               <Text style={styles.slogan}>Ajude a cidade a tornar melhor!</Text>
 
-              {/* Form Inputs */}
               <View style={styles.formContainer}>
                 <TextInput
                   style={styles.input}
@@ -107,7 +107,6 @@ export default function TelaLogin({ navigation }: any) {
                   onChangeText={setEmail}
                 />
 
-                {/* Campo de Senha com o Olhinho */}
                 <View style={styles.passwordContainer}>
                   <TextInput
                     style={styles.passwordInput}
@@ -137,7 +136,6 @@ export default function TelaLogin({ navigation }: any) {
                   <Text style={styles.forgotPasswordText}>Esqueci minha senha</Text>
                 </TouchableOpacity>
 
-                {/* Botão Entrar */}
                 <TouchableOpacity
                   style={[styles.button, isFormValid && styles.buttonActive]}
                   disabled={!isFormValid || loading}
@@ -152,7 +150,6 @@ export default function TelaLogin({ navigation }: any) {
                   )}
                 </TouchableOpacity>
 
-                {/* Link para o Registro */}
                 <TouchableOpacity
                   style={styles.registerLink}
                   onPress={handleGoToRegister}
@@ -160,9 +157,7 @@ export default function TelaLogin({ navigation }: any) {
                   <Text style={styles.registerLinkText}>Não possuo uma conta</Text>
                 </TouchableOpacity>
               </View>
-
             </View>
-
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -171,147 +166,28 @@ export default function TelaLogin({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  container: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 380,
-    backgroundColor: 'rgba(23, 23, 23, 0.92)',
-    borderRadius: 28,
-    paddingHorizontal: 24,
-    paddingVertical: 36,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  logoContainer: {
-    alignItems: 'flex-start',
-    width: '100%',
-    paddingLeft: 8,
-    marginBottom: 12,
-  },
-  logoImage: {
-    width: 60,
-    height: 60,
-    marginBottom: 6,
-  },
-  brandTextContainer: {
-    alignItems: 'flex-start',
-  },
-  brandGreen: {
-    color: '#00FF00',
-    fontSize: 34,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-    lineHeight: 38,
-  },
-  brandWhite: {
-    color: '#FFFFFF',
-    fontSize: 34,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-    lineHeight: 38,
-  },
-  slogan: {
-    width: '100%',
-    paddingLeft: 8,
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '500',
-    marginBottom: 24,
-  },
-  formContainer: {
-    width: '100%',
-    gap: 14,
-  },
-  input: {
-    width: '100%',
-    height: 52,
-    borderWidth: 1,
-    borderColor: '#48484A',
-    borderRadius: 26,
-    paddingHorizontal: 20,
-    color: '#FFFFFF',
-    fontSize: 15,
-    backgroundColor: 'transparent',
-  },
-  passwordContainer: {
-    width: '100%',
-    height: 52,
-    borderWidth: 1,
-    borderColor: '#48484A',
-    borderRadius: 26,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    backgroundColor: 'transparent',
-  },
-  passwordInput: {
-    flex: 1,
-    color: '#FFFFFF',
-    fontSize: 15,
-    height: '100%',
-  },
-  eyeButton: {
-    padding: 4,
-  },
-  forgotPasswordLink: {
-    alignItems: 'flex-end',
-    marginRight: 8,
-    marginTop: -4,
-    marginBottom: 4,
-  },
-  forgotPasswordText: {
-    color: '#00A3FF',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  button: {
-    width: '100%',
-    height: 52,
-    backgroundColor: '#4A4A4A',
-    borderRadius: 26,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  buttonText: {
-    color: '#E5E5EA',
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-  },
-  buttonActive: {
-    backgroundColor: '#00FF00',
-  },
-  buttonTextActive: {
-    color: '#000000',
-  },
-  registerLink: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  registerLinkText: {
-    color: '#00A3FF',
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  backgroundImage: { flex: 1, width: '100%', height: '100%' },
+  container: { flex: 1 },
+  keyboardView: { flex: 1 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  card: { width: '100%', maxWidth: 380, backgroundColor: 'rgba(23, 23, 23, 0.92)', borderRadius: 28, paddingHorizontal: 24, paddingVertical: 36, alignItems: 'center', elevation: 8 },
+  logoContainer: { alignItems: 'flex-start', width: '100%', paddingLeft: 8, marginBottom: 12 },
+  logoImage: { width: 60, height: 60, marginBottom: 6 },
+  brandTextContainer: { alignItems: 'flex-start' },
+  brandGreen: { color: '#00FF00', fontSize: 34, fontWeight: '900', letterSpacing: 0.5, lineHeight: 38 },
+  brandWhite: { color: '#FFFFFF', fontSize: 34, fontWeight: '900', letterSpacing: 0.5, lineHeight: 38 },
+  slogan: { width: '100%', paddingLeft: 8, color: '#FFFFFF', fontSize: 15, fontWeight: '500', marginBottom: 24 },
+  formContainer: { width: '100%', gap: 14 },
+  input: { width: '100%', height: 52, borderWidth: 1, borderColor: '#48484A', borderRadius: 26, paddingHorizontal: 20, color: '#FFFFFF', fontSize: 15 },
+  passwordContainer: { width: '100%', height: 52, borderWidth: 1, borderColor: '#48484A', borderRadius: 26, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 },
+  passwordInput: { flex: 1, color: '#FFFFFF', fontSize: 15, height: '100%' },
+  eyeButton: { padding: 4 },
+  forgotPasswordLink: { alignItems: 'flex-end', marginRight: 8, marginTop: -4, marginBottom: 4 },
+  forgotPasswordText: { color: '#00A3FF', fontSize: 13, fontWeight: '500' },
+  button: { width: '100%', height: 52, backgroundColor: '#4A4A4A', borderRadius: 26, justifyContent: 'center', alignItems: 'center', marginTop: 8 },
+  buttonText: { color: '#E5E5EA', fontSize: 16, fontWeight: '700', letterSpacing: 0.8 },
+  buttonActive: { backgroundColor: '#00FF00' },
+  buttonTextActive: { color: '#000000' },
+  registerLink: { marginTop: 16, alignItems: 'center' },
+  registerLinkText: { color: '#00A3FF', fontSize: 15, fontWeight: '600' },
 });

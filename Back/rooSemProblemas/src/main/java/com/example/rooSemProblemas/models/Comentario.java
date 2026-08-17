@@ -5,7 +5,6 @@ import java.time.LocalDate;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.util.*;
 
 @Getter
 @Setter
@@ -13,11 +12,12 @@ import java.util.*;
 @NoArgsConstructor
 @Entity
 @Table(name = "comentario")
-public class Comentario implements Serializable{
+public class Comentario implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @Id@GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
     @Column(nullable = false)
@@ -30,8 +30,9 @@ public class Comentario implements Serializable{
     @JoinColumn(name = "id_usuario")
     private Usuario usuario;
 
-    @OneToMany
+    // CORREÇÃO: Um comentário pertence a UM relato (@ManyToOne)
+    @ManyToOne
     @JoinColumn(name = "id_relatos")
-    private List<Relatos> relatos;
+    private Relatos relatos;
 
 }

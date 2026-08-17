@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
   View,
-  ScrollView,
+  FlatList,
   TextInput,
   Image,
   TouchableOpacity,
   StatusBar,
   Platform,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { api } from '../../service/api';
 
-// Tipagem para a navegação (ajuste conforme o nome das rotas no seu AppNavigator)
 type RootStackParamList = {
   Home: undefined;
   Relatar: undefined;
@@ -28,25 +29,96 @@ export default function HomeScreen() {
 
   const [relatos, setRelatos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Função para buscar os relatos cadastrados no banco de dados
+  // Busca os relatos na API
   const buscarRelatos = async () => {
     try {
-      // ⚠️ Substitua pelo IP da sua máquina se estiver testando no celular físico (ex: http://192.168.x.x:8080/api/relatos)
-      // Se estiver usando o Emulador Android do Expo, use 'http://10.0.2.2:8080/api/relatos'
-      const response = await fetch('http://localhost:8080/api/relatos');
-      const data = await response.json();
-      setRelatos(data);
+      const response = await api.get('/relatos/listar');
+      setRelatos(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Erro ao buscar relatos:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  useEffect(() => {
+  // Recarrega os dados sempre que a tela receber foco
+  useFocusEffect(
+    useCallback(() => {
+      buscarRelatos();
+    }, [])
+  );
+
+  const onRefresh = () => {
+    setRefreshing(true);
     buscarRelatos();
-  }, []);
+  };
+
+  // Resolve o caminho da imagem retornado pelo Backend
+  const resolverUriImagem = (item: any): string => {
+    const fallback = 'https://via.placeholder.com/400';
+    if (!item?.fotos || !Array.isArray(item.fotos) || item.fotos.length === 0) {
+      return fallback;
+    }
+
+    const caminho = item.fotos[0]?.caminho;
+    if (!caminho) return fallback;
+
+    // Caso a imagem venha como HTTP/HTTPS externa ou Base64
+    if (caminho.startsWith('http') || caminho.startsWith('data:image')) {
+      return caminho;
+    }
+
+    // Pega apenas o nome do arquivo se o backend retornar caminho do Windows (C:\...) ou Linux (/...)
+    const nomeArquivo = caminho.split(/[/\\]/).pop();
+    const baseURL = api.defaults.baseURL?.replace(/\/$/, '') || '';
+
+    return `${baseURL}/uploads/${nomeArquivo}`;
+  };
+
+  const renderCard = ({ item }: { item: any }) => {
+    const imagemUri = resolverUriImagem(item);
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>
+            {item.titulo || item.descricao || 'Sem descrição'}
+          </Text>
+        </View>
+
+        <Image
+          source={{ uri: imagemUri }}
+          style={styles.cardImage}
+          resizeMode="cover"
+        />
+
+        <View style={styles.cardFooter}>
+          <Text style={styles.cardInfo}>
+            {item.enderecoTexto ? `${item.enderecoTexto} | ` : ''}
+            {item.data || ''}
+          </Text>
+
+          <View style={styles.cardActions}>
+            <TouchableOpacity style={styles.likeButton}>
+              <Ionicons name="thumbs-up-outline" size={18} color="#00A3FF" />
+              <Text style={styles.likeCount}>{item.curtidas ?? 0}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.iconButton}>
+              <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.iconButton}>
+              <Ionicons name="alert-circle-outline" size={19} color="#FF3B30" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -67,54 +139,24 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Lista de Relatos (Feed) */}
-      <ScrollView contentContainerStyle={styles.feedList} showsVerticalScrollIndicator={false}>
-        {loading ? (
-          <ActivityIndicator size="large" color="#00A3FF" style={{ marginTop: 40 }} />
-        ) : relatos.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhum relato cadastrado ainda.</Text>
-        ) : (
-          relatos.map((item) => (
-            <View key={item.id} style={styles.card}>
-              <View style={styles.cardHeader}>
-                {/* Como o model tem 'descrição', usamos ela como título ou resumo */}
-                <Text style={styles.cardTitle}>{item.descrição || 'Sem descrição'}</Text>
-              </View>
-
-              {/* Exibe a primeira foto se houver, ou uma imagem padrão */}
-              <Image 
-                source={{ 
-                  uri: item.fotos && item.fotos.length > 0 
-                    ? item.fotos[0].url // Ajuste conforme o atributo da sua classe Foto 
-                    : 'https://via.placeholder.com/400' 
-                }} 
-                style={styles.cardImage} 
-              />
-
-              <View style={styles.cardFooter}>
-                <Text style={styles.cardInfo}>
-                  {item.enderecos ? `${item.enderecos.bairro || 'Endereço'} | ` : ''} {item.data}
-                </Text>
-
-                <View style={styles.cardActions}>
-                  <TouchableOpacity style={styles.likeButton}>
-                    <Ionicons name="thumbs-up-outline" size={18} color="#00A3FF" />
-                    <Text style={styles.likeCount}>{item.curtidas || 0}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.iconButton}>
-                    <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.iconButton}>
-                    <Ionicons name="alert-circle-outline" size={19} color="#FF3B30" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          ))
-        )}
-      </ScrollView>
+      {/* Feed com FlatList */}
+      {loading ? (
+        <ActivityIndicator size="large" color="#00A3FF" style={{ marginTop: 40 }} />
+      ) : (
+        <FlatList
+          data={relatos}
+          keyExtractor={(item, index) => (item.id ? String(item.id) : `item-${index}`)}
+          renderItem={renderCard}
+          contentContainerStyle={styles.feedList}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>Nenhum relato cadastrado ainda.</Text>
+          }
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00A3FF" />
+          }
+        />
+      )}
 
       {/* Barra de Navegação Inferior (Bottom Bar) */}
       <View style={styles.bottomBar}>
@@ -128,9 +170,8 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* Botão de Adicionar Relato com Navegação */}
-        <TouchableOpacity 
-          style={styles.addButton} 
+        <TouchableOpacity
+          style={styles.addButton}
           activeOpacity={0.8}
           onPress={() => navigation.navigate('Relatar')}
         >
@@ -235,8 +276,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    padding: 12,
   },
   cardInfo: {
     color: '#E5E5EA',

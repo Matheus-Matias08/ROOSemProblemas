@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+
 import {
   StyleSheet,
   Text,
@@ -12,29 +13,56 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+import {
+  useNavigation,
+  useFocusEffect,
+} from '@react-navigation/native';
+
+import {
+  NativeStackNavigationProp,
+} from '@react-navigation/native-stack';
+
 import { api } from '../../service/api';
 
 type RootStackParamList = {
   Home: undefined;
+
   Relatar: undefined;
+
+  RelatoDetalhes: {
+    relato: any;
+  };
 };
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+type NavigationProp =
+  NativeStackNavigationProp<
+    RootStackParamList,
+    'Home'
+  >;
 
 export default function HomeScreen() {
-  const navigation = useNavigation<NavigationProp>();
 
-  const [relatos, setRelatos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const navigation =
+    useNavigation<NavigationProp>();
 
-  // Busca os relatos na API
+  const [relatos, setRelatos] =
+    useState<any[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [refreshing, setRefreshing] =
+    useState(false);
+
   const buscarRelatos = async () => {
+
     try {
-      const response = await api.get('/relatos/listar');
+
+      const response =
+        await api.get('/relatos/listar');
 
       setRelatos(
         Array.isArray(response.data)
@@ -43,182 +71,269 @@ export default function HomeScreen() {
       );
 
     } catch (error) {
-      console.error('Erro ao buscar relatos:', error);
+
+      console.error(
+        'Erro ao buscar relatos:',
+        error
+      );
 
     } finally {
+
       setLoading(false);
+
       setRefreshing(false);
     }
   };
 
-  // Recarrega os dados sempre que a tela receber foco
   useFocusEffect(
     useCallback(() => {
+
       buscarRelatos();
+
     }, [])
   );
 
   const onRefresh = () => {
+
     setRefreshing(true);
+
     buscarRelatos();
   };
 
-  // Resolve o endereço da imagem retornado pelo backend
-  const resolverUriImagem = (item: any): string | null => {
+  const resolverUriImagem = (
+    item: any
+  ): string | null => {
 
-    // Verifica se existem fotos
     if (
       !item?.fotos ||
       !Array.isArray(item.fotos) ||
       item.fotos.length === 0
     ) {
+
       return null;
     }
 
-    // O RelatosDTO retorna uma lista de Strings:
-    //
-    // "fotos/abc123.jpg"
-    //
-    const caminho = item.fotos[0];
+    const caminho =
+      item.fotos[0];
 
-    if (!caminho || typeof caminho !== 'string') {
+    if (
+      !caminho ||
+      typeof caminho !== 'string'
+    ) {
+
       return null;
     }
 
-    // Caso o backend futuramente retorne uma URL completa
     if (
       caminho.startsWith('http://') ||
-      caminho.startsWith('https://') ||
-      caminho.startsWith('data:image')
+      caminho.startsWith('https://')
     ) {
+
       return caminho;
     }
 
-    // Se por algum motivo vier um caminho completo
-    // do Windows ou Linux, pega somente o nome do arquivo
-    const nomeArquivo = caminho.split(/[/\\]/).pop();
-
-    if (!nomeArquivo) {
-      return null;
-    }
-
-    const baseURL = api.defaults.baseURL?.replace(/\/$/, '');
+    const baseURL =
+      api.defaults.baseURL?.replace(
+        /\/$/,
+        ''
+      );
 
     if (!baseURL) {
-      console.error('api.defaults.baseURL não configurado.');
+
       return null;
     }
 
-    // O FotoService salva em:
-    //
-    // uploads/fotos/nome.jpg
-    //
-    // O WebConfig disponibiliza:
-    //
-    // /uploads/fotos/nome.jpg
-    //
-    return `${baseURL}/uploads/fotos/${nomeArquivo}`;
+    return `${baseURL}/uploads/${caminho}`;
   };
 
-  const renderCard = ({ item }: { item: any }) => {
+  const abrirDetalhes = (
+    item: any
+  ) => {
 
-    const imagemUri = resolverUriImagem(item);
+    navigation.navigate(
+      'RelatoDetalhes',
+      {
+        relato: item,
+      }
+    );
+  };
+
+  const renderCard = ({
+    item,
+  }: {
+    item: any;
+  }) => {
+
+    const imagemUri =
+      resolverUriImagem(item);
 
     return (
-      <View style={styles.card}>
+
+      <TouchableOpacity
+        style={styles.card}
+
+        activeOpacity={0.85}
+
+        onPress={() =>
+          abrirDetalhes(item)
+        }
+      >
+
+        {/* TÍTULO */}
 
         <View style={styles.cardHeader}>
+
           <Text style={styles.cardTitle}>
-            {item.titulo || item.descricao || 'Sem descrição'}
+
+            {item.titulo ||
+              item.descricao ||
+              'Sem descrição'}
+
           </Text>
+
         </View>
 
+        {/* FOTO */}
+
         {imagemUri ? (
+
           <Image
-            source={{ uri: imagemUri }}
+            source={{
+              uri: imagemUri,
+            }}
+
             style={styles.cardImage}
+
             resizeMode="cover"
           />
+
         ) : (
-          <View style={styles.noImageContainer}>
+
+          <View
+            style={
+              styles.noImageContainer
+            }
+          >
+
             <Ionicons
               name="image-outline"
               size={48}
               color="#666"
             />
 
-            <Text style={styles.noImageText}>
+            <Text
+              style={
+                styles.noImageText
+              }
+            >
               Sem imagem
             </Text>
+
           </View>
+
         )}
 
-        <View style={styles.cardFooter}>
+        {/* RODAPÉ */}
 
-          <Text style={styles.cardInfo}>
+        <View
+          style={styles.cardFooter}
+        >
+
+          <Text
+            style={styles.cardInfo}
+          >
+
             {item.enderecoTexto
               ? `${item.enderecoTexto} | `
               : ''}
+
             {item.data || ''}
+
           </Text>
 
-          <View style={styles.cardActions}>
+          <View
+            style={styles.cardActions}
+          >
 
-            <TouchableOpacity style={styles.likeButton}>
+            <View
+              style={styles.likeButton}
+            >
+
               <Ionicons
                 name="thumbs-up-outline"
                 size={18}
                 color="#00A3FF"
               />
 
-              <Text style={styles.likeCount}>
+              <Text
+                style={styles.likeCount}
+              >
                 {item.curtidas ?? 0}
               </Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity style={styles.iconButton}>
+            </View>
+
+            <View
+              style={styles.iconButton}
+            >
+
               <Ionicons
                 name="share-social-outline"
                 size={18}
                 color="#FFFFFF"
               />
-            </TouchableOpacity>
 
-            <TouchableOpacity style={styles.iconButton}>
+            </View>
+
+            <View
+              style={styles.iconButton}
+            >
+
               <Ionicons
                 name="alert-circle-outline"
                 size={19}
                 color="#FF3B30"
               />
-            </TouchableOpacity>
+
+            </View>
 
           </View>
 
         </View>
 
-      </View>
+      </TouchableOpacity>
     );
   };
 
   return (
+
     <View style={styles.container}>
 
-      {/* Header */}
+      {/* HEADER */}
+
       <View style={styles.header}>
 
-        <View style={styles.brandContainer}>
+        <View
+          style={styles.brandContainer}
+        >
 
-          <Text style={styles.brandGreen}>
+          <Text
+            style={styles.brandGreen}
+          >
             ROOSEM
           </Text>
 
-          <Text style={styles.brandWhite}>
+          <Text
+            style={styles.brandWhite}
+          >
             PROBLEMAS
           </Text>
 
         </View>
 
-        <View style={styles.searchBox}>
+        <View
+          style={styles.searchBox}
+        >
 
           <Ionicons
             name="search"
@@ -237,59 +352,93 @@ export default function HomeScreen() {
 
       </View>
 
-      {/* Feed */}
+      {/* FEED */}
+
       {loading ? (
 
         <ActivityIndicator
           size="large"
           color="#00A3FF"
-          style={{ marginTop: 40 }}
+          style={{
+            marginTop: 40,
+          }}
         />
 
       ) : (
 
         <FlatList
+
           data={relatos}
-          keyExtractor={(item, index) =>
+
+          keyExtractor={(
+            item,
+            index
+          ) =>
             item.id
               ? String(item.id)
               : `item-${index}`
           }
+
           renderItem={renderCard}
-          contentContainerStyle={styles.feedList}
-          showsVerticalScrollIndicator={false}
+
+          contentContainerStyle={
+            styles.feedList
+          }
+
+          showsVerticalScrollIndicator={
+            false
+          }
 
           ListEmptyComponent={
-            <Text style={styles.emptyText}>
-              Nenhum relato cadastrado ainda.
+
+            <Text
+              style={styles.emptyText}
+            >
+              Nenhum relato cadastrado
+              ainda.
             </Text>
+
           }
 
           refreshControl={
+
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
               tintColor="#00A3FF"
             />
+
           }
+
         />
 
       )}
 
-      {/* Barra de navegação inferior */}
-      <View style={styles.bottomBar}>
+      {/* BARRA INFERIOR */}
 
-        <TouchableOpacity style={styles.barItem}>
+      <View
+        style={styles.bottomBar}
+      >
+
+        <TouchableOpacity
+          style={styles.barItem}
+        >
+
           <Ionicons
             name="document-text-outline"
             size={24}
             color="#FFFFFF"
           />
+
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.barItem}>
+        <TouchableOpacity
+          style={styles.barItem}
+        >
 
-          <View style={styles.avatarContainer}>
+          <View
+            style={styles.avatarContainer}
+          >
 
             <Ionicons
               name="person"
@@ -303,28 +452,46 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={styles.addButton}
+
           activeOpacity={0.8}
-          onPress={() => navigation.navigate('Relatar')}
+
+          onPress={() =>
+            navigation.navigate(
+              'Relatar'
+            )
+          }
         >
-          <Text style={styles.addButtonText}>
+
+          <Text
+            style={styles.addButtonText}
+          >
             +
           </Text>
+
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.barItem}>
+        <TouchableOpacity
+          style={styles.barItem}
+        >
+
           <Ionicons
             name="notifications-outline"
             size={24}
             color="#FFFFFF"
           />
+
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.barItem}>
+        <TouchableOpacity
+          style={styles.barItem}
+        >
+
           <Ionicons
             name="menu"
             size={26}
             color="#FFFFFF"
           />
+
         </TouchableOpacity>
 
       </View>
@@ -337,7 +504,9 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
+
     backgroundColor: '#121212',
+
     paddingTop:
       Platform.OS === 'android'
         ? StatusBar.currentHeight
@@ -346,12 +515,20 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: 'row',
+
     alignItems: 'center',
-    justifyContent: 'space-between',
+
+    justifyContent:
+      'space-between',
+
     paddingHorizontal: 16,
+
     paddingVertical: 12,
+
     borderBottomWidth: 1,
-    borderBottomColor: '#2C2C2E',
+
+    borderBottomColor:
+      '#2C2C2E',
   },
 
   brandContainer: {
@@ -360,25 +537,37 @@ const styles = StyleSheet.create({
 
   brandGreen: {
     color: '#00FF00',
+
     fontSize: 16,
+
     fontWeight: '900',
   },
 
   brandWhite: {
     color: '#FFFFFF',
+
     fontSize: 16,
+
     fontWeight: '900',
   },
 
   searchBox: {
     flexDirection: 'row',
+
     alignItems: 'center',
+
     backgroundColor: '#1C1C1E',
+
     borderWidth: 1,
+
     borderColor: '#3A3A3C',
+
     borderRadius: 20,
+
     paddingHorizontal: 12,
+
     height: 36,
+
     width: 150,
   },
 
@@ -388,94 +577,137 @@ const styles = StyleSheet.create({
 
   searchInput: {
     flex: 1,
+
     color: '#FFFFFF',
+
     fontSize: 13,
+
     paddingVertical: 0,
   },
 
   feedList: {
     padding: 16,
+
     paddingBottom: 90,
+
     gap: 16,
   },
 
   emptyText: {
     color: '#8E8E93',
+
     textAlign: 'center',
+
     marginTop: 40,
+
     fontSize: 15,
   },
 
   card: {
     backgroundColor: '#1C1C1E',
+
     borderRadius: 16,
+
     borderWidth: 1.5,
+
     borderColor: '#3A3A3C',
+
     overflow: 'hidden',
   },
 
   cardHeader: {
     paddingHorizontal: 16,
+
     paddingVertical: 10,
+
     borderBottomWidth: 1,
-    borderBottomColor: '#2C2C2E',
+
+    borderBottomColor:
+      '#2C2C2E',
   },
 
   cardTitle: {
     color: '#FFFFFF',
+
     fontSize: 18,
+
     fontWeight: 'bold',
   },
 
   cardImage: {
     width: '100%',
+
     height: 200,
-    backgroundColor: '#2C2C2E',
+
+    backgroundColor:
+      '#2C2C2E',
   },
 
   noImageContainer: {
     width: '100%',
+
     height: 200,
-    backgroundColor: '#2C2C2E',
-    justifyContent: 'center',
-    alignItems: 'center',
+
+    backgroundColor:
+      '#2C2C2E',
+
+    justifyContent:
+      'center',
+
+    alignItems:
+      'center',
   },
 
   noImageText: {
     color: '#666',
+
     marginTop: 8,
+
     fontSize: 14,
   },
 
   cardFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+
+    justifyContent:
+      'space-between',
+
     alignItems: 'center',
+
     padding: 12,
   },
 
   cardInfo: {
     color: '#E5E5EA',
+
     fontSize: 12,
+
     flex: 1,
+
     marginRight: 8,
   },
 
   cardActions: {
     flexDirection: 'row',
+
     alignItems: 'center',
+
     gap: 12,
   },
 
   likeButton: {
     flexDirection: 'row',
+
     alignItems: 'center',
+
     gap: 5,
   },
 
   likeCount: {
     color: '#00A3FF',
+
     fontWeight: 'bold',
+
     fontSize: 15,
   },
 
@@ -485,55 +717,96 @@ const styles = StyleSheet.create({
 
   bottomBar: {
     position: 'absolute',
+
     bottom: 0,
+
     left: 0,
+
     right: 0,
+
     height: 64,
+
     backgroundColor: '#171717',
+
     flexDirection: 'row',
+
     alignItems: 'center',
-    justifyContent: 'space-around',
+
+    justifyContent:
+      'space-around',
+
     borderTopWidth: 1,
-    borderTopColor: '#2C2C2E',
+
+    borderTopColor:
+      '#2C2C2E',
+
     paddingHorizontal: 10,
   },
 
   barItem: {
     alignItems: 'center',
-    justifyContent: 'center',
+
+    justifyContent:
+      'center',
   },
 
   avatarContainer: {
     width: 32,
+
     height: 32,
+
     borderRadius: 16,
-    backgroundColor: '#3A3A3C',
-    justifyContent: 'center',
-    alignItems: 'center',
+
+    backgroundColor:
+      '#3A3A3C',
+
+    justifyContent:
+      'center',
+
+    alignItems:
+      'center',
   },
 
   addButton: {
     width: 48,
+
     height: 48,
+
     borderRadius: 24,
-    backgroundColor: '#00A3FF',
-    justifyContent: 'center',
-    alignItems: 'center',
+
+    backgroundColor:
+      '#00A3FF',
+
+    justifyContent:
+      'center',
+
+    alignItems:
+      'center',
+
     marginTop: -20,
+
     elevation: 5,
+
     shadowColor: '#000',
+
     shadowOffset: {
       width: 0,
       height: 4,
     },
+
     shadowOpacity: 0.3,
+
     shadowRadius: 4,
   },
 
   addButtonText: {
     color: '#FFFFFF',
+
     fontSize: 28,
+
     fontWeight: '300',
+
     marginTop: -2,
   },
+
 });

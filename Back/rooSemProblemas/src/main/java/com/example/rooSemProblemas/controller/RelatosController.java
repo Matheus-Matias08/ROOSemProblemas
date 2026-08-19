@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.rooSemProblemas.DTO.RelatosDTO;
 import com.example.rooSemProblemas.service.RelatoService;
@@ -25,23 +26,48 @@ public class RelatosController {
 
     @GetMapping("/listar")
     public ResponseEntity<List<RelatosDTO>> listar() {
+
         List<RelatosDTO> lista = relatosService.listarTodos();
+
         return ResponseEntity.ok(lista);
     }
 
     @PostMapping("/cadastrar")
     public ResponseEntity<?> cadastrar(
+
             @RequestParam("titulo") String titulo,
+
             @RequestParam("descricao") String descricao,
+
             @RequestParam(value = "endereco", required = false) String endereco,
+
             @RequestParam("anonimo") Boolean anonimo,
-            @RequestParam(value = "usuarioId", required = false) Long usuarioId
+
+            @RequestParam(value = "usuarioId", required = false) Long usuarioId,
+
+            @RequestParam(value = "foto", required = false) MultipartFile foto
+
     ) {
+
         try {
-            RelatosDTO dto = relatosService.cadastrar(titulo, descricao, endereco, anonimo, usuarioId);
-            return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+
+            RelatosDTO dto = relatosService.cadastrar(
+                    titulo,
+                    descricao,
+                    endereco,
+                    anonimo,
+                    usuarioId,
+                    foto);
+
+            return ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .body(dto);
+
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+
+            return ResponseEntity
+                    .badRequest()
+                    .body(e.getMessage());
         }
     }
 }

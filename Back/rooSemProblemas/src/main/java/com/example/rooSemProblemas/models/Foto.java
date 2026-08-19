@@ -11,11 +11,12 @@ import lombok.*;
 @NoArgsConstructor
 @Entity
 @Table(name = "foto")
-public class Foto implements Serializable{
+public class Foto implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @Id@GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
     @Column(nullable = false)
@@ -24,5 +25,4 @@ public class Foto implements Serializable{
     @ManyToOne
     @JoinColumn(name = "id_relatos")
     private Relatos relatos;
-
 }

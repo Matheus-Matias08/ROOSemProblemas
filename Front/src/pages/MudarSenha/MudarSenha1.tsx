@@ -39,7 +39,7 @@ export default function TelaValidacaoCodigo({ navigation }: any) {
 
   const handleProsseguir = () => {
     if (isCodeComplete) {
-      navigation.navigate('TelaRedefinirSenha');
+      navigation.navigate('MudarSenha2');
     }
   };
 

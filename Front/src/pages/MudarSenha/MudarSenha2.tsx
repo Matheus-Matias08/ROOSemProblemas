@@ -24,7 +24,7 @@ export default function TelaRedefinirSenha({ navigation }: any) {
   const handleMudarSenha = () => {
     if (isFormValid) {
       // Lógica de alteração de senha aqui
-      navigation.navigate('Login');
+      navigation.navigate('TelaLogin');
     }
   };
 

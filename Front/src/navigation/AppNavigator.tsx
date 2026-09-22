@@ -11,6 +11,8 @@ import TelaRegistro3 from '../pages/TelaRegistro/telaRegistro3';
 import HomeScreen from '../pages/home/HomeScreen';
 import Relatar from '../pages/Relatar/relatar';
 import RelatoDetalhesScreen from '../pages/DetalhesRelato/RelatoDetalhesScreen';
+import MudarSenha1 from '../pages/MudarSenha/MudarSenha1';
+import MudarSenha2 from '../pages/MudarSenha/MudarSenha2';
 
 const Stack = createNativeStackNavigator();
 
@@ -29,6 +31,8 @@ export default function AppNavigator() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Relatar" component={Relatar} />
         <Stack.Screen name="RelatoDetalhes" component={RelatoDetalhesScreen}/>
+        <Stack.Screen name="MudarSenha1" component={MudarSenha1}/>
+        <Stack.Screen name="MudarSenha2" component={MudarSenha2}/>
       </Stack.Navigator>
     </NavigationContainer>
   );
